@@ -118,20 +118,16 @@ pub async fn start_kernel() -> Result<(), JsValue> {
         .ok_or("no console element")?
         .dyn_into::<HtmlTextAreaElement>()?;
 
-    // inizializza il kernel
     let kernel = Kernel::new(ta).init().await?;
     let kernel = Rc::new(Mutex::new(kernel));
 
-    // salva in thread-local
     KERNEL.with(|k| *k.borrow_mut() = Some(kernel.clone()));
 
-    // spawn della shell
     {
         let mut k = kernel.lock().await;
         k.spawn(crate::core::shell::make_shell());
     }
 
-    // avvio del run loop con requestAnimationFrame
     schedule_tick();
 
     Ok(())

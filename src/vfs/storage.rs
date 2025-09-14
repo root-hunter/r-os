@@ -15,16 +15,13 @@ pub async fn init_storage() -> Result<Database, Error> {
         store_params.auto_increment(false);
         store_params.key_path(Some(KeyPath::new_single("abs_path")));
 
-        // Create object store
         let store = database
             .create_object_store("vol_0", store_params)
             .unwrap();
 
-        // Prepare index params
         let mut index_params = IndexParams::new();
         index_params.unique(true);
 
-        // // Create index on object store
         store
             .create_index("abs_path", KeyPath::new_single("abs_path"), Some(index_params))
             .unwrap();

@@ -12,8 +12,8 @@ pub async fn init_storage() -> Result<Database, Error> {
 
         // Prepare object store params
         let mut store_params = ObjectStoreParams::new();
-        store_params.auto_increment(true);
-        store_params.key_path(Some(KeyPath::new_single("uid")));
+        store_params.auto_increment(false);
+        store_params.key_path(Some(KeyPath::new_single("abs_path")));
 
         // Create object store
         let store = database

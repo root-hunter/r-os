@@ -46,6 +46,35 @@ impl SimpleFS {
         v
     }
 
+    pub async fn exists(&self, path: &str) -> bool {
+        if let Some(db) = &self.database {
+            log(&format!("[vfs] checking if path '{}' exists\n", path));
+            let transaction = db
+                .transaction(&["vol_0"], TransactionMode::ReadOnly)
+                .unwrap();
+
+            let store = transaction.object_store("vol_0").unwrap();
+
+            let key = JsValue::from_str(path);
+            let req = store.get(key).unwrap();
+
+            let result = req.await.unwrap();
+
+            transaction.await.unwrap();
+
+            if result.is_none() {
+                log(&format!("[vfs] path '{}' does not exist\n", path));
+                return false;
+            }
+
+            log(&format!("[vfs] path '{}' exists\n", path));
+            return true;
+        } else {
+            log("[vfs] database not initialized\n");
+            return false;
+        }
+    }
+
     pub async fn read_folder(&self, path: &str) -> Result<Vec<FSEntry>, idb::Error> {
         if let Some(db) = &self.database {
             log(&format!("[vfs] reading folder '{}'\n", path));

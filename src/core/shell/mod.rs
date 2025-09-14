@@ -20,6 +20,7 @@ pub struct Shell {
     buffer: String,
     waiting_for_input: bool,
     regex: Regex,
+    folder: Arc<String>,
 }
 
 impl Shell {
@@ -29,6 +30,7 @@ impl Shell {
             buffer: String::new(),
             waiting_for_input: true,
             regex: Regex::new(REG_SHELL).unwrap(),
+            folder: Arc::new("/".to_string()),
         }
     }
 }
@@ -43,7 +45,7 @@ impl Process for Shell {
     }
 
     fn tick(&mut self, k: &mut Kernel) {
-        let shell_prompt = format!("{}@{}:~$ ", "user", crate::HOSTNAME);
+        let shell_prompt = format!("{}@{}:{}$ ", "user", crate::HOSTNAME, self.folder);
 
         if k.tick_count == 1 && self.buffer.is_empty() {
             log("[shell] Shell process started");
@@ -143,9 +145,38 @@ Enjoy your stay!
                     }
                 });
             }
+            c if c.starts_with("exists") => {
+                let k_clone = Kernel::clone_rc();
+                let c_owned = c.to_string();
+
+                spawn_local(async move {
+                    let command = command::exists::ExistsCommand;
+                    let args: Vec<&str> = c_owned.split_whitespace().skip(1).collect();
+
+                    let result = {
+                        let mut kernel = k_clone.lock().await;
+                        command.execute(&mut kernel, args).await
+                    };
+
+                    {
+                        let kernel = k_clone.lock().await;
+                        kernel.print(&format!("\n{}\n", result));
+                    }
+                });
+            }
             c if c.starts_with("echo ") => {
                 let rest = c.trim_start_matches("echo ").trim();
                 k.print(&format!("\n{}\n", rest));
+            }
+            c if c.starts_with("cd") => {
+                let parts: Vec<&str> = c.split_whitespace().collect();
+                if parts.len() < 2 {
+                    k.print("\nUsage: cd <folder>\n");
+                    return;
+                }
+                let folder = parts[1];
+                // In a real implementation, you would check if the folder exists
+                self.folder = Arc::new(folder.to_string());
             }
             "demo" => {
                 k.print("\nSpawning demo process...\n");

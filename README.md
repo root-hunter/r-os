@@ -88,3 +88,48 @@ wasm-pack build --target web
 
 # Start a static web server (example: Python)
 python3 -m http.server 8080
+
+```
+
+## 📜 Roadmap
+
+The development of **rOS** is experimental and exploratory, but here are the main milestones:
+
+- ✅ **Core Kernel** — cooperative scheduler, process management, messaging
+- ✅ **Interactive Shell** — command parsing & execution (e.g. `mkdir`)
+- ✅ **Persistent Virtual File System (VFS)** — backed by IndexedDB
+- 🔄 **Asynchronous Processes** — better task orchestration and async system calls
+- ⏳ **User Programs** — ability to write and run sandboxed user applications
+- ⏳ **Window Manager & UI** — graphical layer with multiple terminal windows
+- ⏳ **Simulated Networking** — sockets, messaging between processes
+- ⏳ **Extensible Commands** — richer shell environment with pluggable modules
+
+_This roadmap is flexible and may evolve as the project grows._
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions of all kinds — from bug fixes and documentation improvements to entirely new features.
+
+How to get involved:
+1. **Fork** the repository on GitLab/GitHub.
+2. **Create a branch** for your feature or bugfix.
+3. **Submit a merge request (MR)** with a clear description of your changes.
+
+Before contributing:
+- Please make sure your code follows Rust’s best practices (formatting, linting).
+- Add documentation/comments for new functionality.
+- Where possible, include small examples or tests.
+
+Discussions, ideas, and feedback are just as valuable as code. Don’t hesitate to open an **issue** to propose improvements or ask questions.
+
+---
+
+## 📄 License
+
+This project is distributed under the terms of the **MIT License** and **Apche 2.0 License**.  
+You are free to use, modify, and distribute this software for personal and commercial purposes, as long as you include the copyright notice.
+
+See the full [LICENSE-APACHE](LICENSE-APACHE) file for details.
+See the full [LICENSE-MIT](LICENSE-MIT) file for details.

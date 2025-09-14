@@ -16,7 +16,6 @@ pub enum Message {
     Print(String),
     Kill,
 }
-
 pub struct Kernel {
     pub console: HtmlTextAreaElement,
     pub last_pid: usize,

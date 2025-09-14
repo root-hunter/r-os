@@ -55,8 +55,6 @@ impl Process for Shell {
                 .unwrap_or("")
                 .to_string();
 
-            log(&format!("[shell] last line: '{}'", last_line));
-
             if (last_line.is_empty() || self.regex.is_match(&last_line)) && text.ends_with("\n") {
                 if last_line.is_empty() {
                     k.print(&shell_prompt);

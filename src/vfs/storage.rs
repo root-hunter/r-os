@@ -9,7 +9,7 @@ pub async fn init_storage() -> Result<Database, Error> {
         let database = event.database().unwrap();
 
         let mut store_params = ObjectStoreParams::new();
-        store_params.key_path(Some(KeyPath::new_single("path")));
+        store_params.key_path(Some(KeyPath::new_single("full_path")));
         store_params.auto_increment(false);
 
         database

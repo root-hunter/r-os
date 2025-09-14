@@ -49,8 +49,7 @@ impl Process for DemoProcess {
             ));
 
             if self.life == 30 {
-                k.print("[demo] demo process is about to terminate...");
-                k.print("\n");
+                k.print("[demo] demo process is about to terminate...\n");
             }
         }
         self.counter += 1;

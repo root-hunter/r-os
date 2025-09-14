@@ -1,15 +1,20 @@
 use std::collections::HashMap;
-use crate::vfs::storage::init_storage;
+use crate::{log, vfs::storage::init_storage};
 
 pub struct SimpleFS {
     files: HashMap<String, String>,
+    database: Option<idb::Database>,
 }
 
 impl SimpleFS {
     pub fn new() -> Self {
-        let mut s = Self { files: HashMap::new() };
-        s.files.insert("readme.txt".into(), "Welcome to Rust Browser OS!\n".into());
-        s
+        return Self { files: HashMap::new(), database: None };
+    }
+
+    pub async fn init(&mut self) {
+        let database = init_storage().await.unwrap();
+        self.database = Some(database);
+        log("[vfs] storage initialized\n");
     }
 
     pub fn write(&mut self, name: &str, contents: &str) {
@@ -24,9 +29,5 @@ impl SimpleFS {
         let mut v: Vec<_> = self.files.keys().cloned().collect();
         v.sort();
         v
-    }
-
-    pub async fn init(&mut self) {
-        init_storage().await.unwrap();
     }
 }

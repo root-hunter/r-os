@@ -1,33 +1,40 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
-pub enum FSEntryType {
-    File,
-    Folder,
-    Link,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct FSEntry {
-    pub r#type: FSEntryType,
-    pub is_shared: bool,
-    pub is_hidden: bool,
-
-    pub path: String,
-    pub name: String,
-
-    pub contents: Vec<u8>,
-}
-
-impl Default for FSEntry {
-    fn default() -> Self {
-        Self {
-            r#type: FSEntryType::File,
-            is_shared: false,
-            is_hidden: false,
-            path: "/".into(),
-            name: String::new(),
-            contents: Vec::new(),
-        }
+pub trait FSEntryTrait {
+    fn is_hidden(&self) -> bool;
+    fn path(&self) -> &str;
+    fn name(&self) -> &str;
+    fn full_path(&self) -> String {
+        format!("{}/{}", self.path(), self.name())
     }
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum FSEntry {
+    File(FSFile),
+    Folder(FSFolder),
+    Link(FSLink),
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct FSFolder {
+    is_hidden: bool,
+    path: String,
+    name: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct FSFile {
+    is_hidden: bool,
+    path: String,
+    name: String,
+
+    pub data: Option<Vec<u8>>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct FSLink {
+    is_hidden: bool,
+    path: String,
+    name: String,
 }

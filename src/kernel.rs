@@ -11,6 +11,8 @@ thread_local! {
     static KERNEL: RefCell<Option<Rc<RefCell<Kernel>>>> = RefCell::new(None);
 }
 
+
+
 pub enum Message {
     SetWaitingForInput(bool),
     Print(String),

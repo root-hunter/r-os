@@ -1,7 +1,9 @@
 use regex::Regex;
 
 use crate::{
-    kernel::{Kernel, Message}, log, process::{BoxedProcess, Process}
+    kernel::{Kernel, Message},
+    log,
+    process::{BoxedProcess, Process},
 };
 
 static REG_SHELL: &str = r"(^[\w\d-]+@[\w\d-]+:.+\$\s?)(.+)$";
@@ -43,24 +45,21 @@ impl Process for Shell {
 
         if k.tick_count == 1 && self.buffer.is_empty() {
             log("[shell] Shell process started");
+            self.print_welcome(k);
             k.print(&shell_prompt);
         }
 
         if self.waiting_for_input {
             let text = k.console.value();
 
-            let last_line = text
-                .lines()
-                .last()
-                .unwrap_or("")
-                .to_string();
+            let last_line = text.lines().last().unwrap_or("").to_string();
 
             if (last_line.is_empty() || self.regex.is_match(&last_line)) && text.ends_with("\n") {
                 if last_line.is_empty() {
                     k.print(&shell_prompt);
                     return;
                 }
-                
+
                 let split = self
                     .regex
                     .captures(&last_line)
@@ -68,10 +67,7 @@ impl Process for Shell {
 
                 let command = split.get(2).map_or("", |m| m.as_str());
 
-                log(&format!(
-                    "[shell] detected command: '{}'",
-                    command.trim()
-                ));
+                log(&format!("[shell] detected command: '{}'", command.trim()));
 
                 if !command.is_empty() {
                     self.execute_command(&command, k);
@@ -99,6 +95,25 @@ impl Process for Shell {
 }
 
 impl Shell {
+    pub fn print_welcome(&mut self, kernel: &mut Kernel) {
+        let welcome = r#"
+==================================================
+                Welcome to R-OS
+==================================================
+
+Version: 0.1.0
+Author : Antonio Ricciardi
+Kernel : Custom Rust/WebAssembly Kernel
+Type   : Experimental Browser OS
+
+Type 'help' to see available commands.
+Enjoy your stay!
+
+"#;
+
+        kernel.print(welcome);
+    }
+
     fn execute_command(&mut self, cmd: &str, k: &mut Kernel) {
         match cmd {
             "help" => {

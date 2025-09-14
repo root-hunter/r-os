@@ -1,19 +1,26 @@
+use regex::Regex;
+
 use crate::{
-    kernel::Kernel,
-    process::{BoxedProcess, Process},
+    kernel::{Kernel, Message}, log, process::{BoxedProcess, Process}
 };
+
+static REG_SHELL: &str = r"(^[\w\d-]+@[\w\d-]+:.+\$\s?)(.+)$";
 
 #[derive(Clone)]
 pub struct Shell {
+    pid: usize,
     buffer: String,
     waiting_for_input: bool,
+    regex: Regex,
 }
 
 impl Shell {
     pub fn new() -> Self {
         Shell {
+            pid: 0,
             buffer: String::new(),
             waiting_for_input: true,
+            regex: Regex::new(REG_SHELL).unwrap(),
         }
     }
 
@@ -23,38 +30,71 @@ impl Shell {
 }
 
 impl Process for Shell {
+    fn pid(&self) -> usize {
+        self.pid
+    }
+
+    fn set_pid(&mut self, pid: usize) {
+        self.pid = pid;
+    }
+
     fn tick(&mut self, k: &mut Kernel) {
         let shell_prompt = format!("{}@{}:~$ ", "user", crate::HOSTNAME);
 
-        if k.tick_count == 0 && self.buffer.is_empty() {
+        if k.tick_count == 1 && self.buffer.is_empty() {
+            log("[shell] Shell process started");
             k.print(&shell_prompt);
         }
 
         if self.waiting_for_input {
             let text = k.console.value();
 
-            if text.ends_with('\n') {
-                if let Some(pos) = text[..text.len() - 1].rfind('\n') {
-                    // c’è più di una riga → prendiamo l’ultima prima del newline finale
-                    let last = &text[pos + 1..text.len() - 1];
-                    let cmd = last.trim().to_string();
-                    let cmd = cmd.replace(&shell_prompt.trim(), "").trim().to_string();
+            let last_line = text
+                .lines()
+                .last()
+                .unwrap_or("")
+                .to_string();
 
-                    if !cmd.is_empty() {
-                        self.execute_command(&cmd, k);
-                    }
-                } else {
-                    // era la prima riga
-                    let last = &text[..text.len() - 1];
-                    let cmd = last.trim();
+            log(&format!("[shell] last line: '{}'", last_line));
 
-                    if !cmd.is_empty() {
-                        self.execute_command(cmd, k);
-                    }
+            if (last_line.is_empty() || self.regex.is_match(&last_line)) && text.ends_with("\n") {
+                if last_line.is_empty() {
+                    k.print(&shell_prompt);
+                    return;
+                }
+                
+                let split = self
+                    .regex
+                    .captures(&last_line)
+                    .expect("regex matched but no captures");
+
+                let command = split.get(2).map_or("", |m| m.as_str());
+
+                log(&format!(
+                    "[shell] detected command: '{}'",
+                    command.trim()
+                ));
+
+                if !command.is_empty() {
+                    self.execute_command(&command, k);
                 }
 
                 k.print("\n");
                 k.print(&shell_prompt);
+            }
+        }
+    }
+
+    fn on_message(&mut self, _k: &mut Kernel, msg: Message) {
+        match msg {
+            Message::SetWaitingForInput(wait) => {
+                self.waiting_for_input = wait;
+            }
+            Message::Print(s) => {
+                _k.print(&s);
+            }
+            Message::Kill => {
+                // opzionale: gestione di terminazione
             }
         }
     }

@@ -1,28 +1,56 @@
 use wasm_bindgen::prelude::*;
 use web_sys::{window, HtmlTextAreaElement};
+use crate::log;
 use crate::process::{Process, BoxedProcess};
 use crate::vfs::fs::SimpleFS;
 use std::cell::RefCell;
+use std::collections::{BTreeMap, HashMap, VecDeque};
 use std::rc::Rc;
 
 thread_local! {
     static KERNEL: RefCell<Option<Rc<RefCell<Kernel>>>> = RefCell::new(None);
 }
 
+pub enum Message {
+    SetWaitingForInput(bool),
+    Print(String),
+    Kill,
+}
+
 pub struct Kernel {
     pub console: HtmlTextAreaElement,
-    pub processes: Vec<BoxedProcess>,
+    pub last_pid: usize,
+    pub processes: BTreeMap<usize, BoxedProcess>,
     pub fs: SimpleFS,
     pub tick_count: u64,
+    pub messages: VecDeque<(usize, Message)>,
 }
 
 impl Kernel {
     pub fn new(console: HtmlTextAreaElement) -> Self {
         Self {
             console,
-            processes: Vec::new(),
+            last_pid: 0,
+            processes: BTreeMap::new(),
             fs: SimpleFS::new(),
             tick_count: 0,
+            messages: VecDeque::new(),
+        }
+    }
+
+    pub fn send(&mut self, pid: usize, msg: Message) {
+        self.messages.push_back((pid, msg));
+    }
+
+    fn deliver_messages(&mut self) {
+        let kernel_ptr: *mut Kernel = self;
+
+        while let Some((pid, msg)) = self.messages.pop_front() {
+            if let Some(proc) = self.processes.get_mut(&pid) {
+                unsafe {
+                    proc.on_message(&mut *kernel_ptr, msg);
+                }
+            }
         }
     }
 
@@ -30,7 +58,6 @@ impl Kernel {
         let mut val = self.console.value();
         val.push_str(s);
         self.console.set_value(&val);
-        // scroll to bottom
         self.console.set_scroll_top(self.console.scroll_height());
     }
 
@@ -38,23 +65,38 @@ impl Kernel {
         self.console.set_value("");
     }
 
-    pub fn spawn(&mut self, p: BoxedProcess) {
-        self.processes.push(p);
+    pub fn get_new_pid(&mut self) -> usize {
+        self.last_pid += 1;
+        self.last_pid
+    }
+
+    pub fn spawn(&mut self, mut p: BoxedProcess) {
+        p.set_pid(self.get_new_pid());
+
+        log(&format!("Spawning process with pid {}", p.pid()));
+        self.processes.insert(p.pid(), p);
+
+        log(&format!("Processes: {:?}", self.processes.keys()));
+    }
+
+    pub fn kill(&mut self, pid: usize) {
+        if self.processes.remove(&pid).is_some() {
+            log(&format!("Killed process with pid {}", pid));
+        } else {
+            log(&format!("No process with pid {} found", pid));
+        }
     }
 
     pub fn tick(&mut self) {
-        // estrai tick_count per usarlo dopo
+        let kernel_ptr: *mut Kernel = self;
         self.tick_count += 1;
 
-        // usiamo raw pointer per evitare il borrow annidato
-        let kernel_ptr: *mut Kernel = self;
-
-        for proc in self.processes.iter_mut() {
+        for (pid, proc) in self.processes.iter_mut() {
             unsafe {
-                // ora possiamo passare &mut *kernel_ptr senza conflitto
                 proc.tick(&mut *kernel_ptr);
             }
         }
+        self.deliver_messages();
     }
 
     pub async fn init(mut self) -> Result<Self, JsValue> {
@@ -103,17 +145,4 @@ fn schedule_tick() {
         .request_animation_frame(f.as_ref().unchecked_ref())
         .expect("should register rAF");
     f.forget();
-}
-
-// Provide a way for other modules to access kernel (if needed)
-pub fn with_kernel<F,R>(f: F) -> Option<R>
-where
-    F: FnOnce(&mut Kernel) -> R
-{
-    KERNEL.with(|k| {
-        k.borrow().as_ref().map(|rc| {
-            let mut k = rc.borrow_mut();
-            f(&mut k)
-        })
-    })
 }

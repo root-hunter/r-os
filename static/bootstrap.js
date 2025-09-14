@@ -12,12 +12,12 @@ async function run() {
     }
 
     ta.selectionStart = ta.selectionEnd = ta.value.length;
-    ta.scrollTop = ta.scrollHeight;
+    //ta.scrollTop = ta.scrollHeight;
   });
 
   ta.addEventListener("mousedown", (e) => {
-    e.preventDefault();
-    ta.selectionStart = ta.selectionEnd = ta.value.length;
+    //e.preventDefault();
+    //ta.selectionStart = ta.selectionEnd = ta.value.length;
   });
 }
 run();

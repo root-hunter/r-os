@@ -1,9 +1,11 @@
+use std::thread;
+
 use regex::Regex;
 
+mod command;
+
 use crate::{
-    kernel::{Kernel, Message},
-    log,
-    process::{BoxedProcess, Process},
+    core::shell::command::ShellCommand, kernel::{Kernel, Message}, log, process::{BoxedProcess, Process}
 };
 
 static REG_SHELL: &str = r"(^[\w\d-]+@[\w\d-]+:.+\$\s?)(.+)$";
@@ -24,10 +26,6 @@ impl Shell {
             waiting_for_input: true,
             regex: Regex::new(REG_SHELL).unwrap(),
         }
-    }
-
-    pub fn set_waiting_for_input(&mut self, waiting: bool) {
-        self.waiting_for_input = waiting;
     }
 }
 
@@ -133,6 +131,12 @@ Enjoy your stay!
             "demo" => {
                 k.print("\nSpawning demo process...\n");
                 k.spawn(Box::new(crate::core::demo::DemoProcess::new(self)));
+            }
+            c if c.starts_with("mkdir") => {
+                let args: Vec<&str> = c.split_whitespace().skip(1).collect();
+                let cmd = command::mkdir::MkDirCommand;
+                let result = cmd.execute(k, args);
+                k.print(&format!("\n{}\n", result));
             }
             _ => {
                 k.print(&format!("\nUnknown: {}\n", cmd));

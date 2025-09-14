@@ -13,10 +13,16 @@ pub trait FSEntryTrait {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
-pub enum FSEntry {
+pub enum FSEntryKind {
     File(FSFile),
     Folder(FSFolder),
     Link(FSLink),
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct FSEntry {
+    pub full_path: String,
+    pub entry: FSEntryKind,
 }
 
 #[derive(Clone, Serialize, Deserialize)]

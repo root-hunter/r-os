@@ -1,10 +1,15 @@
+use std::sync::Arc;
 
 use regex::Regex;
+use wasm_bindgen_futures::spawn_local;
 
 mod command;
 
 use crate::{
-    core::shell::command::ShellCommand, kernel::{Kernel, Message}, log, process::{BoxedProcess, Process}
+    core::shell::command::ShellCommand,
+    kernel::{Kernel, Message},
+    log,
+    process::{BoxedProcess, Process},
 };
 
 static REG_SHELL: &str = r"(^[\w\d-]+@[\w\d-]+:.+\$\s?)(.+)$";
@@ -111,7 +116,7 @@ Enjoy your stay!
         kernel.print(welcome);
     }
 
-    fn execute_command(&mut self, cmd: &str, k: &mut Kernel) {
+    fn execute_command<'a>(&mut self, cmd: &'a str, k: &mut Kernel) {
         match cmd {
             "help" => {
                 k.print("\nCommands: help, clear, ls, echo <text>, spawn_demo\n");
@@ -132,10 +137,22 @@ Enjoy your stay!
                 k.spawn(Box::new(crate::core::demo::DemoProcess::new(self)));
             }
             c if c.starts_with("mkdir") => {
-                let args: Vec<&str> = c.split_whitespace().skip(1).collect();
-                let cmd = command::mkdir::MkDirCommand;
-                let result = cmd.execute(k, args);
-                k.print(&format!("\n{}\n", result));
+                let k_clone = k.clone_rc();
+                let c_owned = c.to_string();
+
+                spawn_local(async move {
+                    let command = command::mkdir::MkDirCommand;
+                    let args: Vec<&str> = c_owned.split_whitespace().skip(1).collect();
+
+                    // isola il borrow mut
+                    let result = {
+                        let mut kernel = k_clone.borrow_mut();
+                        command.execute(&mut kernel, args).await
+                    };
+
+                    // ora il RefMut è stato droppato, quindi puoi fare un borrow immutabile
+                    k_clone.borrow().print(&format!("\n{}\n", result));
+                });
             }
             _ => {
                 k.print(&format!("\nUnknown: {}\n", cmd));

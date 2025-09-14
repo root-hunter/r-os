@@ -11,8 +11,6 @@ thread_local! {
     static KERNEL: RefCell<Option<Rc<RefCell<Kernel>>>> = RefCell::new(None);
 }
 
-
-
 pub enum Message {
     SetWaitingForInput(bool),
     Print(String),
@@ -37,6 +35,10 @@ impl Kernel {
             tick_count: 0,
             messages: VecDeque::new(),
         }
+    }
+
+    pub fn clone_rc(&self) -> Rc<RefCell<Kernel>> {
+        KERNEL.with(|k| k.borrow().as_ref().unwrap().clone())
     }
 
     pub fn send(&mut self, pid: usize, msg: Message) {
@@ -89,8 +91,9 @@ impl Kernel {
     }
 
     pub fn tick(&mut self) {
-        let kernel_ptr: *mut Kernel = self;
         self.tick_count += 1;
+
+        let kernel_ptr: *mut Kernel = self;
 
         for (pid, proc) in self.processes.iter_mut() {
             unsafe {
@@ -105,6 +108,7 @@ impl Kernel {
         Ok(self)
     }
 }
+use async_std::sync::Mutex;
 
 pub async fn start_kernel() -> Result<(), JsValue> {
     let window = window().ok_or("no window")?;

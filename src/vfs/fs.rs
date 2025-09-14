@@ -55,12 +55,15 @@ impl SimpleFS {
             };
 
             let serializer = Serializer::json_compatible();
-            let entry = FSEntry::Folder(folder.clone());
+            let entry = FSEntry {
+                full_path: folder.full_path(),
+                entry: crate::vfs::entry::FSEntryKind::Folder(folder.clone()),
+            };
             let full_path = folder.full_path();
             self.files.insert(full_path.clone(), entry.clone());
 
             let key = JsValue::from_str(full_path.as_str());
-            let id = store.add(&entry.serialize(&serializer).unwrap(), Some(&key))
+            let id = store.add(&entry.serialize(&serializer).unwrap(), None)
                 .unwrap().await.unwrap();
 
             log(&format!("[vfs] folder id: {:?}\n", id));

@@ -4,5 +4,5 @@ pub mod mkdir;
 pub mod touch;
 
 pub trait ShellCommand {
-    fn execute(&self, k: &mut Kernel, args: Vec<&str>) -> String;
+    async fn execute(&self, k: &mut Kernel, args: Vec<&str>) -> String;
 }

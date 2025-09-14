@@ -131,5 +131,5 @@ Discussions, ideas, and feedback are just as valuable as code. Don’t hesitate 
 This project is distributed under the terms of the **MIT License** and **Apche 2.0 License**.  
 You are free to use, modify, and distribute this software for personal and commercial purposes, as long as you include the copyright notice.
 
-- See the full [LICENSE-APACHE](LICENSE-APACHE) file for details.
 - See the full [LICENSE-MIT](LICENSE-MIT) file for details.
+- See the full [LICENSE-APACHE](LICENSE-APACHE) file for details.

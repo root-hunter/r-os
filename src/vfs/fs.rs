@@ -1,6 +1,5 @@
 use idb::{Query, TransactionMode};
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde::Serialize;
 use serde_wasm_bindgen::Serializer;
 use std::collections::HashMap;
 use wasm_bindgen::JsValue;

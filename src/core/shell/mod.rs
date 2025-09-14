@@ -144,13 +144,11 @@ Enjoy your stay!
                     let command = command::mkdir::MkDirCommand;
                     let args: Vec<&str> = c_owned.split_whitespace().skip(1).collect();
 
-                    // blocco per eseguire il comando
                     let result = {
                         let mut kernel = k_clone.lock().await;
                         command.execute(&mut kernel, args).await
                     };
 
-                    // blocco separato per stampare
                     {
                         let kernel = k_clone.lock().await;
                         kernel.print(&format!("\n{}\n", result));

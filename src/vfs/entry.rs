@@ -21,7 +21,7 @@ pub enum FSEntryKind {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct FSEntry {
-    pub full_path: String,
+    pub abs_path: String,
     pub entry: FSEntryKind,
 }
 

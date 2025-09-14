@@ -3,7 +3,7 @@ use idb::{Database, DatabaseEvent, Error, Factory, IndexParams, KeyPath, ObjectS
 pub async fn init_storage() -> Result<Database, Error> {
     let factory = Factory::new()?;
 
- let mut open_request = factory.open("test", Some(1)).unwrap();
+ let mut open_request = factory.open("vfs", Some(1)).unwrap();
 
     // Add an upgrade handler for database
     open_request.on_upgrade_needed(|event| {
@@ -26,7 +26,7 @@ pub async fn init_storage() -> Result<Database, Error> {
 
         // // Create index on object store
         store
-            .create_index("full_path", KeyPath::new_single("full_path"), Some(index_params))
+            .create_index("abs_path", KeyPath::new_single("abs_path"), Some(index_params))
             .unwrap();
     });
 

@@ -44,19 +44,20 @@ impl SimpleFS {
 
             let store = transaction.object_store("vol_0").unwrap();
 
+            let now = chrono::Utc::now().timestamp_millis() as u64;
             let folder = FSFolder {
                 metadata: crate::vfs::entry::FSEntryMetadata {
-                    path: "/".into(),
+                    path: "".into(),
                     name: name.into(),
-                    created_at: 0,
-                    modified_at: 0,
+                    created_at: now,
+                    modified_at: now,
                     is_hidden: false,
                 },
             };
 
             let serializer = Serializer::json_compatible();
             let entry = FSEntry {
-                full_path: folder.full_path(),
+                abs_path: folder.full_path(),
                 entry: crate::vfs::entry::FSEntryKind::Folder(folder.clone()),
             };
             let full_path = folder.full_path();

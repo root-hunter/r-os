@@ -4,7 +4,7 @@ use crate::log;
 use crate::process::{Process, BoxedProcess};
 use crate::vfs::fs::SimpleFS;
 use std::cell::RefCell;
-use std::collections::{BTreeMap, HashMap, VecDeque};
+use std::collections::{BTreeMap, VecDeque};
 use std::rc::Rc;
 
 thread_local! {

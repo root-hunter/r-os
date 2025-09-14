@@ -1,4 +1,4 @@
-use idb::{Database, DatabaseEvent, Error, Factory, IndexParams, KeyPath, ObjectStoreParams};
+use idb::{Database, DatabaseEvent, Error, Factory, KeyPath, ObjectStoreParams};
 
 pub async fn init_storage() -> Result<Database, Error> {
     let factory = Factory::new()?;

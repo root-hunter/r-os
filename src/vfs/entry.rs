@@ -68,7 +68,51 @@ pub struct FSFile {
     pub data: Option<Vec<u8>>,
 }
 
+impl FSEntryTrait for FSFile {
+    fn is_hidden(&self) -> bool {
+        self.metadata.is_hidden
+    }
+
+    fn path(&self) -> &str {
+        &self.metadata.path
+    }
+
+    fn name(&self) -> &str {
+        &self.metadata.name
+    }
+
+    fn created_at(&self) -> u64 {
+        self.metadata.created_at
+    }
+
+    fn modified_at(&self) -> u64 {
+        self.metadata.modified_at
+    }
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 pub struct FSLink {
     metadata: FSEntryMetadata,
+}
+
+impl FSEntryTrait for FSLink {
+    fn is_hidden(&self) -> bool {
+        self.metadata.is_hidden
+    }
+
+    fn path(&self) -> &str {
+        &self.metadata.path
+    }
+
+    fn name(&self) -> &str {
+        &self.metadata.name
+    }
+
+    fn created_at(&self) -> u64 {
+        self.metadata.created_at
+    }
+
+    fn modified_at(&self) -> u64 {
+        self.metadata.modified_at
+    }
 }

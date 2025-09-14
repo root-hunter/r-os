@@ -124,9 +124,24 @@ Enjoy your stay!
             "clear" => {
                 k.clear();
             }
-            "ls" => {
-                let list: Vec<String> = k.fs.list();
-                k.print(&format!("\n{}\n", list.join("\n")));
+            c if c.starts_with("ls") => {
+                let k_clone = Kernel::clone_rc();
+                let c_owned = c.to_string();
+
+                spawn_local(async move {
+                    let command = command::ls::LsCommand;
+                    let args: Vec<&str> = c_owned.split_whitespace().skip(1).collect();
+
+                    let result = {
+                        let mut kernel = k_clone.lock().await;
+                        command.execute(&mut kernel, args).await
+                    };
+
+                    {
+                        let kernel = k_clone.lock().await;
+                        kernel.print(&format!("\n{}\n", result));
+                    }
+                });
             }
             c if c.starts_with("echo ") => {
                 let rest = c.trim_start_matches("echo ").trim();

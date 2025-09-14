@@ -1,10 +1,17 @@
-use std::collections::HashMap;
-use idb::TransactionMode;
-use serde::Serialize;
+use idb::{Query, TransactionMode};
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use serde_wasm_bindgen::Serializer;
+use std::collections::HashMap;
 use wasm_bindgen::JsValue;
 
-use crate::{log, vfs::{entry::{FSEntry, FSEntryTrait, FSFolder}, storage::init_storage}};
+use crate::{
+    log,
+    vfs::{
+        entry::{FSEntry, FSEntryTrait, FSFolder},
+        storage::init_storage,
+    },
+};
 
 pub struct SimpleFS {
     files: HashMap<String, FSEntry>,
@@ -13,7 +20,10 @@ pub struct SimpleFS {
 
 impl SimpleFS {
     pub fn new() -> Self {
-        return Self { files: HashMap::new(), database: None };
+        return Self {
+            files: HashMap::new(),
+            database: None,
+        };
     }
 
     pub async fn init(&mut self) {
@@ -36,11 +46,53 @@ impl SimpleFS {
         v
     }
 
-    pub async fn create_folder(&mut self, name: &str) {
+    pub async fn read_folder(&self, path: &str) -> Result<Vec<FSEntry>, idb::Error> {
+        if let Some(db) = &self.database {
+            log(&format!("[vfs] reading folder '{}'\n", path));
+            let transaction = db
+                .transaction(&["vol_0"], TransactionMode::ReadOnly)
+                .unwrap();
 
+            let store = transaction.object_store("vol_0").unwrap();
+
+            let key = JsValue::from_str(path);
+       
+            let query = Query::KeyRange(idb::KeyRange::bound(
+                &JsValue::from_str(&format!("{}", path)),
+                &JsValue::from_str(&format!("{}\u{FFFF}", path)),
+                Some(false),
+                Some(false),
+            ).unwrap());
+
+            let req = store.get_all(None, None).unwrap();
+            let result = req.await?;
+
+            log(&format!("[vfs] found {} entries\n", result.len()));
+
+            if result.is_empty() {
+                log(&format!("[vfs] folder '{}' is empty\n", path));
+                return Ok(vec![]);
+            }
+
+            let entries = result
+                .into_iter().map(|entry| serde_wasm_bindgen::from_value(entry).unwrap()).collect();
+
+            transaction.await?;
+
+            log(&format!("[vfs] folder '{}' read\n", path));
+            Ok(entries)
+        } else {
+            log("[vfs] database not initialized\n");
+            Err(idb::Error::InvalidStorageType)
+        }
+    }
+
+    pub async fn create_folder(&mut self, name: &str) {
         if let Some(db) = &self.database {
             log(&format!("[vfs] creating folder '{}'\n", name));
-            let transaction = db.transaction(&["vol_0"], TransactionMode::ReadWrite).unwrap();
+            let transaction = db
+                .transaction(&["vol_0"], TransactionMode::ReadWrite)
+                .unwrap();
 
             let store = transaction.object_store("vol_0").unwrap();
 
@@ -64,8 +116,11 @@ impl SimpleFS {
             self.files.insert(full_path.clone(), entry.clone());
 
             let key = JsValue::from_str(full_path.as_str());
-            let id = store.add(&entry.serialize(&serializer).unwrap(), None)
-                .unwrap().await.unwrap();
+            let id = store
+                .add(&entry.serialize(&serializer).unwrap(), None)
+                .unwrap()
+                .await
+                .unwrap();
 
             log(&format!("[vfs] folder id: {:?}\n", id));
             transaction.commit().unwrap().await.unwrap();

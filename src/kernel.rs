@@ -8,7 +8,7 @@ use std::collections::{BTreeMap, VecDeque};
 use std::rc::Rc;
 
 thread_local! {
-    static KERNEL: RefCell<Option<Rc<RefCell<Kernel>>>> = RefCell::new(None);
+    static KERNEL: RefCell<Option<Rc<Mutex<Kernel>>>> = RefCell::new(None);
 }
 
 pub enum Message {
@@ -37,7 +37,7 @@ impl Kernel {
         }
     }
 
-    pub fn clone_rc(&self) -> Rc<RefCell<Kernel>> {
+    pub fn clone_rc() -> Rc<Mutex<Kernel>> {
         KERNEL.with(|k| k.borrow().as_ref().unwrap().clone())
     }
 
@@ -118,14 +118,20 @@ pub async fn start_kernel() -> Result<(), JsValue> {
         .ok_or("no console element")?
         .dyn_into::<HtmlTextAreaElement>()?;
 
+    // inizializza il kernel
     let kernel = Kernel::new(ta).init().await?;
-    let kernel = Rc::new(RefCell::new(kernel));
-    KERNEL.with(|k| *k.borrow_mut() = Some(kernel.clone()));
-    
-    // spawn a shell process
-    kernel.borrow_mut().spawn(crate::core::shell::make_shell());
+    let kernel = Rc::new(Mutex::new(kernel));
 
-    // kick the run loop using requestAnimationFrame
+    // salva in thread-local
+    KERNEL.with(|k| *k.borrow_mut() = Some(kernel.clone()));
+
+    // spawn della shell
+    {
+        let mut k = kernel.lock().await;
+        k.spawn(crate::core::shell::make_shell());
+    }
+
+    // avvio del run loop con requestAnimationFrame
     schedule_tick();
 
     Ok(())
@@ -138,10 +144,13 @@ fn schedule_tick() {
     let f = Closure::wrap(Box::new(move || {
         KERNEL.with(|k| {
             if let Some(kref) = k.borrow().as_ref() {
-                kref.borrow_mut().tick();
+                let k_clone = kref.clone();
+                wasm_bindgen_futures::spawn_local(async move {
+                    let mut kernel = k_clone.lock().await;
+                    kernel.tick();
+                });
             }
         });
-        // re-schedule
         schedule_tick();
     }) as Box<dyn FnMut()>);
 

@@ -137,21 +137,24 @@ Enjoy your stay!
                 k.spawn(Box::new(crate::core::demo::DemoProcess::new(self)));
             }
             c if c.starts_with("mkdir") => {
-                let k_clone = k.clone_rc();
+                let k_clone = Kernel::clone_rc();
                 let c_owned = c.to_string();
 
                 spawn_local(async move {
                     let command = command::mkdir::MkDirCommand;
                     let args: Vec<&str> = c_owned.split_whitespace().skip(1).collect();
 
-                    // isola il borrow mut
+                    // blocco per eseguire il comando
                     let result = {
-                        let mut kernel = k_clone.borrow_mut();
+                        let mut kernel = k_clone.lock().await;
                         command.execute(&mut kernel, args).await
                     };
 
-                    // ora il RefMut è stato droppato, quindi puoi fare un borrow immutabile
-                    k_clone.borrow().print(&format!("\n{}\n", result));
+                    // blocco separato per stampare
+                    {
+                        let kernel = k_clone.lock().await;
+                        kernel.print(&format!("\n{}\n", result));
+                    }
                 });
             }
             _ => {

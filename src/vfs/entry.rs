@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 pub trait FSEntryTrait {
     fn is_hidden(&self) -> bool;
     fn name(&self) -> String;
-    fn created_at(&self) -> u64;
-    fn modified_at(&self) -> u64;
+    fn created_at(&self) -> i64;
+    fn modified_at(&self) -> i64;
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -14,6 +14,41 @@ pub enum FSEntryKind {
     Folder(FSFolder),
     Link(FSLink),
 }
+
+impl FSEntryTrait for FSEntryKind {
+    fn is_hidden(&self) -> bool {
+        match self {
+            FSEntryKind::File(f) => f.is_hidden(),
+            FSEntryKind::Folder(f) => f.is_hidden(),
+            FSEntryKind::Link(f) => f.is_hidden(),
+        }
+    }
+
+    fn name(&self) -> String {
+        match self {
+            FSEntryKind::File(f) => f.name(),
+            FSEntryKind::Folder(f) => f.name(),
+            FSEntryKind::Link(f) => f.name(),
+        }
+    }
+
+    fn created_at(&self) -> i64 {
+        match self {
+            FSEntryKind::File(f) => f.created_at(),
+            FSEntryKind::Folder(f) => f.created_at(),
+            FSEntryKind::Link(f) => f.created_at(),
+        }
+    }
+
+    fn modified_at(&self) -> i64 {
+        match self {
+            FSEntryKind::File(f) => f.modified_at(),
+            FSEntryKind::Folder(f) => f.modified_at(),
+            FSEntryKind::Link(f) => f.modified_at(),
+        }
+    }
+}
+
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FSEntry {
@@ -31,8 +66,8 @@ impl FSEntry {
 pub struct FSEntryMetadata {
     pub is_hidden: bool,
     pub name: String,
-    pub created_at: u64,
-    pub modified_at: u64,
+    pub created_at: i64,
+    pub modified_at: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -49,11 +84,11 @@ impl FSEntryTrait for FSFolder {
         self.metadata.name.to_string()
     }
 
-    fn created_at(&self) -> u64 {
+    fn created_at(&self) -> i64 {
         self.metadata.created_at
     }
 
-    fn modified_at(&self) -> u64 {
+    fn modified_at(&self) -> i64 {
         self.metadata.modified_at
     }
 }
@@ -74,11 +109,11 @@ impl FSEntryTrait for FSFile {
         self.metadata.name.to_string()
     }
 
-    fn created_at(&self) -> u64 {
+    fn created_at(&self) -> i64 {
         self.metadata.created_at
     }
 
-    fn modified_at(&self) -> u64 {
+    fn modified_at(&self) -> i64 {
         self.metadata.modified_at
     }
 }
@@ -97,11 +132,11 @@ impl FSEntryTrait for FSLink {
         self.metadata.name.to_string()
     }
 
-    fn created_at(&self) -> u64 {
+    fn created_at(&self) -> i64 {
         self.metadata.created_at
     }
 
-    fn modified_at(&self) -> u64 {
+    fn modified_at(&self) -> i64 {
         self.metadata.modified_at
     }
 }

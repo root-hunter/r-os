@@ -217,7 +217,7 @@ impl SimpleFS {
             let name = path.rsplit('/').next().unwrap_or("");
             let store = transaction.object_store("vol_0").unwrap();
 
-            let now = chrono::Utc::now().timestamp_millis() as u64;
+            let now = chrono::Utc::now().timestamp_millis();
             let folder = FSFolder {
                 metadata: crate::vfs::entry::FSEntryMetadata {
                     name: name.into(),

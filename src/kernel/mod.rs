@@ -1,11 +1,18 @@
 use wasm_bindgen::prelude::*;
 use web_sys::{window, HtmlTextAreaElement};
 use crate::console_log;
+use crate::core::time::SystemClockProcess;
+use crate::kernel::defaults::{PID_DEFAULT_SYSTEM_CLOCK, PID_DEFAULT_SYSTEM_SHELL};
+use crate::kernel::errors::KernelError;
 use crate::process::{Process, BoxedProcess};
 use crate::vfs::fs::SimpleFS;
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell};
 use std::collections::{BTreeMap, VecDeque};
 use std::rc::Rc;
+use std::sync::Arc;
+
+pub mod defaults;
+pub mod errors;
 
 thread_local! {
     static KERNEL: RefCell<Option<Rc<Mutex<Kernel>>>> = RefCell::new(None);
@@ -23,17 +30,21 @@ pub struct Kernel {
     pub fs: SimpleFS,
     pub tick_count: u64,
     pub messages: VecDeque<(usize, Message)>,
+    time: i64,
+    timestamp: String
 }
 
 impl Kernel {
     pub fn new(console: HtmlTextAreaElement) -> Self {
         Self {
             console,
-            last_pid: 0,
+            last_pid: 1000,
             processes: BTreeMap::new(),
             fs: SimpleFS::new(),
             tick_count: 0,
             messages: VecDeque::new(),
+            time: 0,
+            timestamp: "".into()
         }
     }
 
@@ -68,18 +79,40 @@ impl Kernel {
         self.console.set_value("");
     }
 
-    pub fn get_new_pid(&mut self) -> usize {
+    pub fn get_next_pid(&mut self) -> usize {
         self.last_pid += 1;
         self.last_pid
     }
 
     pub fn spawn(&mut self, mut p: BoxedProcess) {
-        p.set_pid(self.get_new_pid());
+        let pid = self.get_next_pid();
 
-        console_log(&format!("Spawning process with pid {}", p.pid()));
+        self.spawn_with_pid(p, pid);
+    }
+
+    pub fn set_time(&mut self, time: i64) {
+        self.time = time;
+    }
+
+    pub fn get_time(&self) -> i64 {
+        self.time
+    }
+
+    pub fn set_timestamp(&mut self, timestamp: String) {
+        self.timestamp = timestamp;
+    }
+
+    pub fn get_timestamp(&self) -> String {
+        self.timestamp.clone()
+    }
+
+    pub fn spawn_with_pid(&mut self, mut p: BoxedProcess, pid: usize) {
+        p.set_pid(pid);
+
+        let pname = p.name();
+
         self.processes.insert(p.pid(), p);
-
-        console_log(&format!("Processes: {:?}", self.processes.keys()));
+        console_log(&format!("Spawning process with pid {} ({})\nProcesses: {:?}", pid, pname, self.processes.keys()));
     }
 
     pub fn kill(&mut self, pid: usize) {
@@ -125,7 +158,14 @@ pub async fn start_kernel() -> Result<(), JsValue> {
 
     {
         let mut k = kernel.lock().await;
-        k.spawn(crate::core::shell::make_shell());
+        let process = crate::core::time::init();
+        k.spawn_with_pid(process, PID_DEFAULT_SYSTEM_CLOCK);
+    }
+
+    {
+        let mut k = kernel.lock().await;
+        let process = crate::core::shell::init();
+        k.spawn_with_pid(process, PID_DEFAULT_SYSTEM_SHELL);
     }
 
     schedule_tick();

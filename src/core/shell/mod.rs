@@ -7,7 +7,13 @@ use wasm_bindgen_futures::spawn_local;
 mod command;
 
 use crate::{
-    console_log, core::shell::command::{ShellCommand, ShellCommandWithData, ShellCommandWithShell}, kernel::{Kernel, Message}, process::{BoxedProcess, Process}
+    console_log,
+    core::{
+        demo::DemoProcess,
+        shell::command::{ShellCommand, ShellCommandWithData, ShellCommandWithShell},
+    },
+    kernel::{Kernel, Message},
+    process::{BoxedProcess, Process},
 };
 
 static REG_SHELL: &str = r"(^[\w\d-]+@[\w\d-]+:.+\$\s?)(.+)$";
@@ -15,6 +21,7 @@ static REG_SHELL: &str = r"(^[\w\d-]+@[\w\d-]+:.+\$\s?)(.+)$";
 #[derive(Debug, Clone)]
 pub struct Shell {
     pid: usize,
+    name: String,
     buffer: String,
     waiting_for_input: bool,
     regex: Regex,
@@ -22,9 +29,10 @@ pub struct Shell {
 }
 
 impl Shell {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Shell {
             pid: 0,
+            name: "rshell".into(),
             buffer: String::new(),
             waiting_for_input: true,
             regex: Regex::new(REG_SHELL).unwrap(),
@@ -94,6 +102,10 @@ impl Process for Shell {
             }
         }
     }
+    
+    fn name(&self) -> String {
+        self.name.clone()
+    }
 }
 
 impl Shell {
@@ -128,6 +140,24 @@ Enjoy your stay!
             }
             "clear" => {
                 k.clear();
+            }
+            "time" => {
+                let k_clone = Kernel::clone_rc();
+                let cmd = cmd.to_string();
+
+                spawn_local(async move {
+                    let mut kernel = k_clone.lock().await;
+                    command::time::TimeCommand::execute(&mut kernel, &cmd).await;
+                });
+            }
+            "top" => {
+                let k_clone = Kernel::clone_rc();
+                let cmd = cmd.to_string();
+
+                spawn_local(async move {
+                    let mut kernel = k_clone.lock().await;
+                    command::top::TopCommand::execute(&mut kernel, &cmd).await;
+                });
             }
             c if c.starts_with("ls") => {
                 let k_clone = Kernel::clone_rc();
@@ -176,13 +206,14 @@ Enjoy your stay!
 
                     let result = {
                         let mut kernel = k_clone.lock().await;
-                        command::cd::CdCommand::execute_data(&mut kernel, &c_owned, folder_clone).await
+                        command::cd::CdCommand::execute_data(&mut kernel, &c_owned, folder_clone)
+                            .await
                     };
                 });
             }
             "demo" => {
                 k.print("\nSpawning demo process...\n");
-                k.spawn(Box::new(crate::core::demo::DemoProcess::new(self)));
+                k.spawn(Box::new(DemoProcess::new(self)));
             }
             c if c.starts_with("mkdir") => {
                 let k_clone = Kernel::clone_rc();
@@ -194,7 +225,8 @@ Enjoy your stay!
                 spawn_local(async move {
                     let result = {
                         let mut kernel = k_clone.lock().await;
-                        command::mkdir::MkDirCommand::execute(&mut kernel, &mut shell,  &c_owned).await
+                        command::mkdir::MkDirCommand::execute(&mut kernel, &mut shell, &c_owned)
+                            .await
                     };
 
                     {
@@ -210,6 +242,6 @@ Enjoy your stay!
     }
 }
 
-pub fn make_shell() -> BoxedProcess {
+pub fn init() -> BoxedProcess {
     Box::new(Shell::new())
 }

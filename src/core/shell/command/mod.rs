@@ -9,6 +9,8 @@ pub mod ls;
 pub mod mkdir;
 pub mod touch;
 pub mod exists;
+pub mod time;
+pub mod top;
 
 pub trait ShellCommand {
     async fn execute(k: &mut Kernel, cmd: &str) -> String {

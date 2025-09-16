@@ -3,8 +3,8 @@ use wasm_bindgen::prelude::*;
 
 mod vfs;
 mod kernel;
-mod process;
 mod core;
+mod process;
 
 pub static HOSTNAME: &str = "r-os";
 

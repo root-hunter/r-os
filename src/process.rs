@@ -1,4 +1,4 @@
-use crate::kernel::{Kernel, Message};
+use crate::{kernel::{Kernel, Message}};
 use std::{any::Any, boxed::Box};
 
 pub trait Process: Any {
@@ -9,6 +9,7 @@ pub trait Process: Any {
         self
     }
     fn pid(&self) -> usize;
+    fn name(&self) -> String;
     fn set_pid(&mut self, pid: usize);
     fn tick(&mut self, k: &mut Kernel);
     fn on_message(&mut self, k: &mut Kernel, msg: Message) {

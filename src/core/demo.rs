@@ -4,6 +4,7 @@ use crate::{core::shell::Shell, kernel::{Kernel, Message}, process::Process};
 
 pub struct DemoProcess {
     pid: usize,
+    name: String,
     counter: u32,
     life: u32,
     shell: Arc<Mutex<Shell>>,
@@ -13,6 +14,7 @@ impl DemoProcess {
     pub fn new(shell: &mut Shell) -> Self {
         Self {
             pid: 0,
+            name: "demo_async_process".into(),
             counter: 0,
             life: 120,
             shell: Arc::new(Mutex::new(shell.clone())),
@@ -21,6 +23,8 @@ impl DemoProcess {
 }
 
 impl Process for DemoProcess {
+    
+
     fn pid(&self) -> usize {
         self.pid
     }
@@ -55,4 +59,10 @@ impl Process for DemoProcess {
         self.counter += 1;
         self.life -= 1;
     }
+    
+    fn name(&self) -> String {
+        self.name.clone()
+    }
+    
+    
 }

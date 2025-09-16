@@ -1,7 +1,7 @@
 
 use clap::Parser;
 
-use crate::{console_log, core::{shell::command::ShellCommand, time::SystemClockProcess}};
+use crate::core::shell::command::ShellCommand;
 
 #[derive(Parser, Debug)]
 #[command(name = "time", about = "rOS time command", version = "0.1.0")]

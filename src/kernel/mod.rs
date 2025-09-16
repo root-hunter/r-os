@@ -1,15 +1,12 @@
 use wasm_bindgen::prelude::*;
 use web_sys::{window, HtmlTextAreaElement};
 use crate::console_log;
-use crate::core::time::SystemClockProcess;
 use crate::kernel::defaults::{PID_DEFAULT_SYSTEM_CLOCK, PID_DEFAULT_SYSTEM_SHELL};
-use crate::kernel::errors::KernelError;
 use crate::process::{Process, BoxedProcess};
 use crate::vfs::fs::SimpleFS;
-use std::cell::{Ref, RefCell};
+use std::cell::RefCell;
 use std::collections::{BTreeMap, VecDeque};
 use std::rc::Rc;
-use std::sync::Arc;
 
 pub mod defaults;
 pub mod errors;
@@ -84,7 +81,7 @@ impl Kernel {
         self.last_pid
     }
 
-    pub fn spawn(&mut self, mut p: BoxedProcess) {
+    pub fn spawn(&mut self, p: BoxedProcess) {
         let pid = self.get_next_pid();
 
         self.spawn_with_pid(p, pid);

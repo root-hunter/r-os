@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{core::shell::command::{ShellCommand, ShellCommandWithData}, kernel::Kernel, vfs::entry::FSEntryTrait};
+use crate::{core::shell::command::ShellCommandWithData, kernel::Kernel};
 use async_std::sync::Mutex;
 use clap::Parser;
 

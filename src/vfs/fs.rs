@@ -1,7 +1,6 @@
 use idb::{Query, TransactionMode};
 use serde::Serialize;
 use serde_wasm_bindgen::Serializer;
-use web_sys::console;
 use std::{collections::HashMap};
 use wasm_bindgen::JsValue;
 use crate::vfs::errors::SimpleFSError;
@@ -11,7 +10,7 @@ const REG_FOLDER: &str = r"(/?([^/\\0]+/)*[^/\\0]*)";
 use crate::{
     console_log,
     vfs::{
-        entry::{FSEntry, FSEntryTrait, FSFolder},
+        entry::{FSEntry, FSFolder},
         storage::init_storage,
     },
 };

@@ -1,4 +1,4 @@
-use crate::{console_log, core::shell::{command::{ShellCommand, ShellCommandWithShell}, Shell}, kernel::Kernel, vfs::{entry::{FSEntryTrait, FSFolder}, fs::SimpleFS}};
+use crate::{console_log, core::shell::{command::ShellCommandWithShell, Shell}, kernel::Kernel, vfs::fs::SimpleFS};
 
 use clap::Parser;
 

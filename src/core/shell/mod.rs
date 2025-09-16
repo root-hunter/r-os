@@ -7,7 +7,7 @@ use wasm_bindgen_futures::spawn_local;
 mod command;
 
 use crate::{
-    console_log, core::shell::{self, command::{ShellCommand, ShellCommandWithData, ShellCommandWithShell}}, kernel::{Kernel, Message}, process::{BoxedProcess, Process}
+    console_log, core::shell::command::{ShellCommand, ShellCommandWithData, ShellCommandWithShell}, kernel::{Kernel, Message}, process::{BoxedProcess, Process}
 };
 
 static REG_SHELL: &str = r"(^[\w\d-]+@[\w\d-]+:.+\$\s?)(.+)$";

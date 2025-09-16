@@ -3,7 +3,7 @@ use crate::{console_log, core::shell::{command::ShellCommandWithShell, Shell}, k
 use clap::Parser;
 
 #[derive(Parser, Debug)]
-#[command(name = "mkdir", about = "rOS command to create a new directory")]
+#[command(name = "mkdir", about = "rOS command to create a new directory", version = "0.1.1")]
 pub struct MkDirCommand {
     #[arg(required = true)]
     folders: Vec<String>,

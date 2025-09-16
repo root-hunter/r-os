@@ -5,7 +5,7 @@ use async_std::sync::Mutex;
 use clap::Parser;
 
 #[derive(Parser, Debug)]
-#[command(name = "cd", about = "rOS command to change directory")]
+#[command(name = "cd", about = "rOS command to change directory", version = "0.1.1")]
 pub struct CdCommand {
     #[arg(required = true)]
     folder: String,

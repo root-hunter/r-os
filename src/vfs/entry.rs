@@ -8,6 +8,7 @@ pub trait FSEntryTrait {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
 pub enum FSEntryKind {
     File(FSFile),
     Folder(FSFolder),

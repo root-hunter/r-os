@@ -16,4 +16,4 @@ pub trait Process: Any {
     }
 }
 
-pub type BoxedProcess = Box<dyn Process>;
+pub type BoxedProcess = Box<dyn Process + Send>;

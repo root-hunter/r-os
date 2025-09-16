@@ -1,6 +1,6 @@
 use wasm_bindgen::prelude::*;
 use web_sys::{window, HtmlTextAreaElement};
-use crate::log;
+use crate::console_log;
 use crate::process::{Process, BoxedProcess};
 use crate::vfs::fs::SimpleFS;
 use std::cell::RefCell;
@@ -76,17 +76,17 @@ impl Kernel {
     pub fn spawn(&mut self, mut p: BoxedProcess) {
         p.set_pid(self.get_new_pid());
 
-        log(&format!("Spawning process with pid {}", p.pid()));
+        console_log(&format!("Spawning process with pid {}", p.pid()));
         self.processes.insert(p.pid(), p);
 
-        log(&format!("Processes: {:?}", self.processes.keys()));
+        console_log(&format!("Processes: {:?}", self.processes.keys()));
     }
 
     pub fn kill(&mut self, pid: usize) {
         if self.processes.remove(&pid).is_some() {
-            log(&format!("Killed process with pid {}", pid));
+            console_log(&format!("Killed process with pid {}", pid));
         } else {
-            log(&format!("No process with pid {} found", pid));
+            console_log(&format!("No process with pid {} found", pid));
         }
     }
 

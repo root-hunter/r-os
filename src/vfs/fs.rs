@@ -1,16 +1,27 @@
 use idb::{Query, TransactionMode};
 use serde::Serialize;
 use serde_wasm_bindgen::Serializer;
-use std::collections::HashMap;
+use std::{collections::HashMap, f32::consts::E};
 use wasm_bindgen::JsValue;
 
+const REG_FOLDER: &str = r"(/?([^/\\0]+/)*[^/\\0]*)";
+
 use crate::{
-    log,
+    console_log,
     vfs::{
         entry::{FSEntry, FSEntryTrait, FSFolder},
         storage::init_storage,
     },
 };
+
+#[derive(Debug)]
+pub enum SimpleFSError {
+    InvalidPath,
+    NotFound,
+    AlreadyExists,
+    IOError,
+    IndexedDBError(idb::Error),
+}
 
 pub struct SimpleFS {
     files: HashMap<String, FSEntry>,
@@ -28,7 +39,7 @@ impl SimpleFS {
     pub async fn init(&mut self) {
         let database = init_storage().await.unwrap();
         self.database = Some(database);
-        log("[vfs] storage initialized\n");
+        console_log("[vfs] storage initialized\n");
     }
 
     pub fn write(&mut self, name: &str, contents: FSEntry) {
@@ -45,9 +56,23 @@ impl SimpleFS {
         v
     }
 
-    pub async fn exists(&self, path: &str) -> bool {
+    pub fn is_folder_path(path: &str) -> bool {
+        let re = regex::Regex::new(REG_FOLDER).unwrap();
+        re.is_match(path)
+    }
+
+    pub fn is_absolute_path(path: &str) -> bool {
+        path.starts_with('/')
+    }
+
+    pub async fn exists(&self, path: &str) -> Result<bool, SimpleFSError> {
+        if SimpleFS::is_folder_path(path) == false {
+            console_log(&format!("[vfs] invalid path '{}'\n", path));
+            return Err(SimpleFSError::InvalidPath);
+        }
+
         if let Some(db) = &self.database {
-            log(&format!("[vfs] checking if path '{}' exists\n", path));
+            console_log(&format!("[vfs] checking if path '{}' exists\n", path));
             let transaction = db
                 .transaction(&["vol_0"], TransactionMode::ReadOnly)
                 .unwrap();
@@ -62,21 +87,26 @@ impl SimpleFS {
             transaction.await.unwrap();
 
             if result.is_none() {
-                log(&format!("[vfs] path '{}' does not exist\n", path));
-                return false;
+                console_log(&format!("[vfs] path '{}' does not exist\n", path));
+                return Ok(false);
             }
 
-            log(&format!("[vfs] path '{}' exists\n", path));
-            return true;
+            console_log(&format!("[vfs] path '{}' exists\n", path));
+            return Ok(true);
         } else {
-            log("[vfs] database not initialized\n");
-            return false;
+            console_log("[vfs] database not initialized\n");
+            return Err(SimpleFSError::IOError);
         }
     }
 
-    pub async fn read_folder(&self, path: &str) -> Result<Vec<FSEntry>, idb::Error> {
+    pub async fn read_folder(&self, path: &str) -> Result<Vec<FSEntry>, SimpleFSError> {
+        if SimpleFS::is_folder_path(path) == false {
+            console_log(&format!("[vfs] invalid path '{}'\n", path));
+            return Ok(vec![]);
+        }
+        
         if let Some(db) = &self.database {
-            log(&format!("[vfs] reading folder '{}'\n", path));
+            console_log(&format!("[vfs] reading folder '{}'\n", path));
             let transaction = db
                 .transaction(&["vol_0"], TransactionMode::ReadOnly)
                 .unwrap();
@@ -93,41 +123,67 @@ impl SimpleFS {
             ).unwrap());
 
             let req = store.get_all(None, None).unwrap();
-            let result = req.await?;
+            let result = req.await.unwrap();
 
-            log(&format!("[vfs] found {} entries\n", result.len()));
+            console_log(&format!("[vfs] found {} entries\n", result.len()));
 
             if result.is_empty() {
-                log(&format!("[vfs] folder '{}' is empty\n", path));
+                console_log(&format!("[vfs] folder '{}' is empty\n", path));
                 return Ok(vec![]);
             }
 
             let entries = result
                 .into_iter().map(|entry| serde_wasm_bindgen::from_value(entry).unwrap()).collect();
 
-            transaction.await?;
+            transaction.await.unwrap();
 
-            log(&format!("[vfs] folder '{}' read\n", path));
+            console_log(&format!("[vfs] folder '{}' read\n", path));
             Ok(entries)
         } else {
-            log("[vfs] database not initialized\n");
-            Err(idb::Error::InvalidStorageType)
+            console_log("[vfs] database not initialized\n");
+            Err(SimpleFSError::IOError)
         }
     }
 
-    pub async fn create_folder(&mut self, name: &str) {
+    pub async fn create_folder(&mut self, path: &str) -> Result<FSFolder, SimpleFSError>{
+        return self.create_folder_relative("/", path).await;
+    }
+
+    pub async fn create_folder_relative(&mut self, current_folder: &str, path: &str) -> Result<FSFolder, SimpleFSError> {
+        let full_path = if path.starts_with('/') {
+            path.to_string()
+        } else {
+            format!("{}/{}", current_folder.trim_end_matches('/'), path)
+        };
+
+        return self.create_folder_absolute(&full_path).await;
+    }
+
+    pub async fn create_folder_absolute(&mut self, path: &str) -> Result<FSFolder, SimpleFSError> {
+        if !SimpleFS::is_folder_path(path) {
+            console_log(&format!("[vfs] invalid folder name '{}'\n", path));
+            return Err(SimpleFSError::InvalidPath);
+        }
+
+        if !SimpleFS::is_absolute_path(path) {
+            console_log(&format!("[vfs] ivalid path '{}' it must be absolute\n", path));
+            return Err(SimpleFSError::InvalidPath);
+        }
+
         if let Some(db) = &self.database {
-            log(&format!("[vfs] creating folder '{}'\n", name));
+            console_log(&format!("[vfs] creating folder '{}'\n", path));
+            
             let transaction = db
                 .transaction(&["vol_0"], TransactionMode::ReadWrite)
                 .unwrap();
 
+            let name = path.rsplit('/').next().unwrap_or("");
             let store = transaction.object_store("vol_0").unwrap();
 
             let now = chrono::Utc::now().timestamp_millis() as u64;
             let folder = FSFolder {
                 metadata: crate::vfs::entry::FSEntryMetadata {
-                    path: "".into(),
+                    path: path.into(),
                     name: name.into(),
                     created_at: now,
                     modified_at: now,
@@ -137,25 +193,29 @@ impl SimpleFS {
 
             let serializer = Serializer::json_compatible();
             let entry = FSEntry {
-                abs_path: folder.full_path(),
+                abs_path: folder.path(),
                 entry: crate::vfs::entry::FSEntryKind::Folder(folder.clone()),
             };
-            let full_path = folder.full_path();
-            self.files.insert(full_path.clone(), entry.clone());
+            let abs_path = folder.path();
+            self.files.insert(abs_path.clone(), entry.clone());
 
-            let key = JsValue::from_str(full_path.as_str());
+            let key = JsValue::from_str(abs_path.as_str());
             let id = store
                 .add(&entry.serialize(&serializer).unwrap(), None)
                 .unwrap()
                 .await
                 .unwrap();
 
-            log(&format!("[vfs] folder id: {:?}\n", id));
+            console_log(&format!("[vfs] folder id: {:?}\n", id));
             transaction.commit().unwrap().await.unwrap();
 
-            log(&format!("[vfs] folder '{}' created\n", full_path));
+            console_log(&format!("[vfs] folder '{}' created\n", abs_path));
+
+            Ok(folder)
         } else {
-            log("[vfs] database not initialized\n");
+            console_log("[vfs] database not initialized\n");
+
+            Err(SimpleFSError::IOError)
         }
     }
 }

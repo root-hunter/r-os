@@ -33,7 +33,7 @@ pub fn start() -> Result<(), JsValue> {
     console_error_panic_hook::set_once();
     spawn_local(async {
         if let Err(e) = kernel::start_kernel().await {
-            log(&format!("Error starting kernel: {:?}", e));
+            console_log(&format!("Error starting kernel: {:?}", e));
         }
     });
 
@@ -42,6 +42,6 @@ pub fn start() -> Result<(), JsValue> {
 
 use web_sys::console;
 
-pub fn log(msg: &str) {
+pub fn console_log(msg: &str) {
     console::log_1(&msg.into());
 }

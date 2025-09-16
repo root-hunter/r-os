@@ -1,26 +1,24 @@
 use std::sync::Arc;
 
+use async_std::sync::Mutex;
 use regex::Regex;
 use wasm_bindgen_futures::spawn_local;
 
 mod command;
 
 use crate::{
-    core::shell::command::ShellCommand,
-    kernel::{Kernel, Message},
-    log,
-    process::{BoxedProcess, Process},
+    console_log, core::shell::{self, command::{ShellCommand, ShellCommandWithData, ShellCommandWithShell}}, kernel::{Kernel, Message}, process::{BoxedProcess, Process}
 };
 
 static REG_SHELL: &str = r"(^[\w\d-]+@[\w\d-]+:.+\$\s?)(.+)$";
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Shell {
     pid: usize,
     buffer: String,
     waiting_for_input: bool,
     regex: Regex,
-    folder: Arc<String>,
+    folder: Arc<Mutex<String>>,
 }
 
 impl Shell {
@@ -30,7 +28,7 @@ impl Shell {
             buffer: String::new(),
             waiting_for_input: true,
             regex: Regex::new(REG_SHELL).unwrap(),
-            folder: Arc::new("/".to_string()),
+            folder: Arc::new(Mutex::new("/".to_string())),
         }
     }
 }
@@ -45,10 +43,10 @@ impl Process for Shell {
     }
 
     fn tick(&mut self, k: &mut Kernel) {
-        let shell_prompt = format!("{}@{}:{}$ ", "user", crate::HOSTNAME, self.folder);
+        let shell_prompt = self.shell_prompt();
 
         if k.tick_count == 1 && self.buffer.is_empty() {
-            log("[shell] Shell process started");
+            console_log("[shell] Shell process started");
             self.print_welcome(k);
             k.print(&shell_prompt);
         }
@@ -71,7 +69,7 @@ impl Process for Shell {
 
                 let command = split.get(2).map_or("", |m| m.as_str());
 
-                log(&format!("[shell] detected command: '{}'", command.trim()));
+                console_log(&format!("[shell] detected command: '{}'", command.trim()));
 
                 if !command.is_empty() {
                     self.execute_command(&command, k);
@@ -99,6 +97,11 @@ impl Process for Shell {
 }
 
 impl Shell {
+    pub fn shell_prompt(&self) -> String {
+        let folder = futures::executor::block_on(async { self.folder.lock().await.clone() });
+        format!("user@r-os:{}$ ", folder)
+    }
+
     pub fn print_welcome(&mut self, kernel: &mut Kernel) {
         let welcome = r#"
 ==================================================
@@ -131,12 +134,9 @@ Enjoy your stay!
                 let c_owned = c.to_string();
 
                 spawn_local(async move {
-                    let command = command::ls::LsCommand;
-                    let args: Vec<&str> = c_owned.split_whitespace().skip(1).collect();
-
                     let result = {
                         let mut kernel = k_clone.lock().await;
-                        command.execute(&mut kernel, args).await
+                        command::ls::LsCommand::execute(&mut kernel, &c_owned).await
                     };
 
                     {
@@ -150,12 +150,9 @@ Enjoy your stay!
                 let c_owned = c.to_string();
 
                 spawn_local(async move {
-                    let command = command::exists::ExistsCommand;
-                    let args: Vec<&str> = c_owned.split_whitespace().skip(1).collect();
-
                     let result = {
                         let mut kernel = k_clone.lock().await;
-                        command.execute(&mut kernel, args).await
+                        command::exists::ExistsCommand::execute(&mut kernel, &c_owned).await
                     };
 
                     {
@@ -169,14 +166,19 @@ Enjoy your stay!
                 k.print(&format!("\n{}\n", rest));
             }
             c if c.starts_with("cd") => {
-                let parts: Vec<&str> = c.split_whitespace().collect();
-                if parts.len() < 2 {
-                    k.print("\nUsage: cd <folder>\n");
-                    return;
-                }
-                let folder = parts[1];
-                // In a real implementation, you would check if the folder exists
-                self.folder = Arc::new(folder.to_string());
+                let k_clone = Kernel::clone_rc();
+                let c_owned = c.to_string();
+
+                let folder_clone = self.folder.clone();
+
+                spawn_local(async move {
+                    let shell_prompt = format!("\nuser@r-os:{}$ ", folder_clone.lock().await);
+
+                    let result = {
+                        let mut kernel = k_clone.lock().await;
+                        command::cd::CdCommand::execute_data(&mut kernel, &c_owned, folder_clone).await
+                    };
+                });
             }
             "demo" => {
                 k.print("\nSpawning demo process...\n");
@@ -185,14 +187,14 @@ Enjoy your stay!
             c if c.starts_with("mkdir") => {
                 let k_clone = Kernel::clone_rc();
                 let c_owned = c.to_string();
+                let mut shell = self.clone();
+
+                console_log(&format!("[shell] executing command: '{}'", c_owned));
 
                 spawn_local(async move {
-                    let command = command::mkdir::MkDirCommand;
-                    let args: Vec<&str> = c_owned.split_whitespace().skip(1).collect();
-
                     let result = {
                         let mut kernel = k_clone.lock().await;
-                        command.execute(&mut kernel, args).await
+                        command::mkdir::MkDirCommand::execute(&mut kernel, &mut shell,  &c_owned).await
                     };
 
                     {

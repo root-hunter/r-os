@@ -2,14 +2,10 @@ use serde::{Deserialize, Serialize};
 
 pub trait FSEntryTrait {
     fn is_hidden(&self) -> bool;
-    fn path(&self) -> &str;
-    fn name(&self) -> &str;
+    fn path(&self) -> String;
+    fn name(&self) -> String;
     fn created_at(&self) -> u64;
     fn modified_at(&self) -> u64;
-
-    fn full_path(&self) -> String {
-        format!("{}/{}", self.path(), self.name())
-    }
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -44,12 +40,12 @@ impl FSEntryTrait for FSFolder {
         self.metadata.is_hidden
     }
 
-    fn path(&self) -> &str {
-        &self.metadata.path
+    fn path(&self) -> String {
+        self.metadata.path.to_string()
     }
 
-    fn name(&self) -> &str {
-        &self.metadata.name
+    fn name(&self) -> String {
+        self.metadata.name.to_string()
     }
 
     fn created_at(&self) -> u64 {
@@ -73,12 +69,12 @@ impl FSEntryTrait for FSFile {
         self.metadata.is_hidden
     }
 
-    fn path(&self) -> &str {
-        &self.metadata.path
+    fn path(&self) -> String {
+        self.metadata.path.to_string()
     }
 
-    fn name(&self) -> &str {
-        &self.metadata.name
+    fn name(&self) -> String {
+        self.metadata.name.to_string()
     }
 
     fn created_at(&self) -> u64 {
@@ -100,12 +96,12 @@ impl FSEntryTrait for FSLink {
         self.metadata.is_hidden
     }
 
-    fn path(&self) -> &str {
-        &self.metadata.path
+    fn path(&self) -> String {
+        self.metadata.path.to_string()
     }
 
-    fn name(&self) -> &str {
-        &self.metadata.name
+    fn name(&self) -> String {
+        self.metadata.name.to_string()
     }
 
     fn created_at(&self) -> u64 {

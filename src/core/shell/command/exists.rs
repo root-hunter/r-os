@@ -3,7 +3,9 @@ use crate::{core::shell::command::ShellCommand, kernel::Kernel};
 pub struct ExistsCommand;
 
 impl ShellCommand for ExistsCommand {
-    async fn execute(&self, k: &mut Kernel, args: Vec<&str>) -> String {
+    async fn execute(k: &mut Kernel, cmd: &str) -> String {
+        let args: Vec<&str> = cmd.split_whitespace().skip(1).collect();
+        
         if args.is_empty() {
             return "exists: missing operand".into();
         }
@@ -11,10 +13,15 @@ impl ShellCommand for ExistsCommand {
 
         let exists = k.fs.exists(dir_name).await;
 
-        if exists {
-            format!("Entry '{}' exists.", dir_name)
+        if let Err(err) = exists {
+            return format!("exists: error checking existence of '{}': {:?}", dir_name, err);
         } else {
-            format!("Entry '{}' does not exist.", dir_name)
+            let exists = exists.unwrap();
+            if exists {
+                return format!("Entry '{}' exists.", dir_name)
+            } else {
+                return format!("Entry '{}' does not exist.", dir_name);
+            }
         }
     }
 }

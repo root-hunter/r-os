@@ -138,21 +138,25 @@ impl SimpleFS {
         }
     }
 
-    pub async fn create_folder(&mut self, path: &str) -> Result<FSFolder, SimpleFSError>{
+    pub async fn create_folder(&mut self, path: &str) -> Result<FSEntry, SimpleFSError>{
         return self.create_folder_relative("/", path).await;
     }
 
-    pub async fn create_folder_relative(&mut self, current_folder: &str, path: &str) -> Result<FSFolder, SimpleFSError> {
+    pub async fn create_folder_relative(&mut self, current_folder: &str, path: &str) -> Result<FSEntry, SimpleFSError> {
         let full_path = if path.starts_with('/') {
             path.to_string()
         } else {
-            format!("{}/{}", current_folder.trim_end_matches('/'), path)
+            if current_folder == "/" {
+                format!("/{}", path)
+            } else {
+                format!("{}/{}", current_folder.trim_end_matches('/'), path)
+            }
         };
 
         return self.create_folder_absolute(&full_path).await;
     }
 
-    pub async fn create_folder_absolute(&mut self, path: &str) -> Result<FSFolder, SimpleFSError> {
+    pub async fn create_folder_absolute(&mut self, path: &str) -> Result<FSEntry, SimpleFSError> {
 
         if !SimpleFS::is_folder_path(path) {
             console_log(&format!("[vfs] invalid folder name '{}'\n", path));
@@ -169,16 +173,37 @@ impl SimpleFS {
             return Err(SimpleFSError::AlreadyExists);
         }
 
-        let path_parts = path.rsplit('/').skip(1).filter(|s| !s.is_empty()).collect::<Vec<&str>>();
-        let parent_path = if path_parts.is_empty() {
+        let path_parts: Vec<&str> = path.split('/').filter(|p| !p.is_empty()).collect();
+
+        if path_parts.len() < 2 {
+            console_log(&format!("[vfs] cannot create root folder '{}'\n", path));
+            return Err(SimpleFSError::InvalidPath);
+        }
+
+        let parent_path = if path == "/" {
             "/".to_string()
         } else {
-            format!("/{}", path_parts.join("/"))
+            let mut p_path = "".to_string();
+
+            let last = path_parts.len() - 1;
+            for (i, p) in path_parts.iter().enumerate() {
+                if i == last {
+                    continue;
+                }
+                
+                p_path.push_str(format!("/{}", p).as_str());
+            }
+
+            if p_path.is_empty() {
+                "/".to_string()
+            } else {
+                p_path
+            }
         };
 
         console_log(&format!("[vfs] parent folder of '{}' is '{}'\n", path, parent_path));
 
-        if !parent_path.is_empty() && !self.exists(&parent_path).await.unwrap_or(false) {
+        if !parent_path.is_empty() && parent_path != "/" && !self.exists(&parent_path).await.unwrap_or(false) {
             console_log(&format!("[vfs] parent folder '{}' does not exist\n", parent_path));
             return Err(SimpleFSError::ParentNotFound);
         }
@@ -196,7 +221,6 @@ impl SimpleFS {
             let now = chrono::Utc::now().timestamp_millis() as u64;
             let folder = FSFolder {
                 metadata: crate::vfs::entry::FSEntryMetadata {
-                    path: path.into(),
                     name: name.into(),
                     created_at: now,
                     modified_at: now,
@@ -206,13 +230,11 @@ impl SimpleFS {
 
             let serializer = Serializer::json_compatible();
             let entry = FSEntry {
-                abs_path: folder.path(),
+                abs_path: path.into(),
                 entry: crate::vfs::entry::FSEntryKind::Folder(folder.clone()),
             };
-            let abs_path = folder.path();
-            self.files.insert(abs_path.clone(), entry.clone());
+            self.files.insert(entry.abs_path.clone(), entry.clone());
 
-            let key = JsValue::from_str(abs_path.as_str());
             let id = store
                 .add(&entry.serialize(&serializer).unwrap(), None)
                 .unwrap()
@@ -222,9 +244,9 @@ impl SimpleFS {
             console_log(&format!("[vfs] folder id: {:?}\n", id));
             transaction.commit().unwrap().await.unwrap();
 
-            console_log(&format!("[vfs] folder '{}' created\n", abs_path));
+            console_log(&format!("[vfs] folder '{}' created\n", entry.abs_path));
 
-            Ok(folder)
+            Ok(entry)
         } else {
             console_log("[vfs] database not initialized\n");
 

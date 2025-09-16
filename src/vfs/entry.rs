@@ -2,7 +2,6 @@ use serde::{Deserialize, Serialize};
 
 pub trait FSEntryTrait {
     fn is_hidden(&self) -> bool;
-    fn path(&self) -> String;
     fn name(&self) -> String;
     fn created_at(&self) -> u64;
     fn modified_at(&self) -> u64;
@@ -21,10 +20,15 @@ pub struct FSEntry {
     pub entry: FSEntryKind,
 }
 
+impl FSEntry {
+    pub fn path(&self) -> String {
+        self.abs_path.clone()
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FSEntryMetadata {
     pub is_hidden: bool,
-    pub path: String,
     pub name: String,
     pub created_at: u64,
     pub modified_at: u64,
@@ -38,10 +42,6 @@ pub struct FSFolder {
 impl FSEntryTrait for FSFolder {
     fn is_hidden(&self) -> bool {
         self.metadata.is_hidden
-    }
-
-    fn path(&self) -> String {
-        self.metadata.path.to_string()
     }
 
     fn name(&self) -> String {
@@ -69,10 +69,6 @@ impl FSEntryTrait for FSFile {
         self.metadata.is_hidden
     }
 
-    fn path(&self) -> String {
-        self.metadata.path.to_string()
-    }
-
     fn name(&self) -> String {
         self.metadata.name.to_string()
     }
@@ -94,10 +90,6 @@ pub struct FSLink {
 impl FSEntryTrait for FSLink {
     fn is_hidden(&self) -> bool {
         self.metadata.is_hidden
-    }
-
-    fn path(&self) -> String {
-        self.metadata.path.to_string()
     }
 
     fn name(&self) -> String {

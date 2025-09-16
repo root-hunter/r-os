@@ -175,7 +175,7 @@ impl SimpleFS {
 
         let path_parts: Vec<&str> = path.split('/').filter(|p| !p.is_empty()).collect();
 
-        if path_parts.len() < 2 {
+        if path_parts.len() < 1 {
             console_log(&format!("[vfs] cannot create root folder '{}'\n", path));
             return Err(SimpleFSError::InvalidPath);
         }

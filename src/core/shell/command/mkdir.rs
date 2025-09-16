@@ -39,19 +39,23 @@ impl ShellCommandWithShell for MkDirCommand {
             }
 
             if !SimpleFS::is_absolute_path(&folder) {
-                if let Ok(folder) = k.fs.create_folder_relative(&current_folder, &folder).await {
+                let result = k.fs.create_folder_relative(&current_folder, &folder).await;
+
+                if let Ok(folder) = result {
                     k.print(format!("mkdir: created directory '{}'", folder.path()).as_str());
                     created.push(folder);
                 } else {
-                    k.print(format!("mkdir: cannot create directory '{}': IO Error", folder).as_str());
+                    k.print(format!("mkdir: cannot create directory '{}': {}", folder, result.unwrap_err()).as_str());
                     continue;
                 }
             } else {
-                if let Ok(folder) = k.fs.create_folder(&folder).await {
+                let result = k.fs.create_folder(&folder).await;
+
+                if let Ok(folder) = result {
                     k.print(format!("mkdir: created directory '{}'", folder.path()).as_str());
                     created.push(folder);
                 } else {
-                    k.print(format!("mkdir: cannot create directory '{}': IO Error", folder).as_str());
+                    k.print(format!("mkdir: cannot create directory '{}': {}", folder, result.unwrap_err()).as_str());
                     continue;
                 }
             }

@@ -1,8 +1,10 @@
 use idb::{Query, TransactionMode};
 use serde::Serialize;
 use serde_wasm_bindgen::Serializer;
-use std::{collections::HashMap, f32::consts::E};
+use web_sys::console;
+use std::{collections::HashMap};
 use wasm_bindgen::JsValue;
+use crate::vfs::errors::SimpleFSError;
 
 const REG_FOLDER: &str = r"(/?([^/\\0]+/)*[^/\\0]*)";
 
@@ -13,15 +15,6 @@ use crate::{
         storage::init_storage,
     },
 };
-
-#[derive(Debug)]
-pub enum SimpleFSError {
-    InvalidPath,
-    NotFound,
-    AlreadyExists,
-    IOError,
-    IndexedDBError(idb::Error),
-}
 
 pub struct SimpleFS {
     files: HashMap<String, FSEntry>,
@@ -66,7 +59,7 @@ impl SimpleFS {
     }
 
     pub async fn exists(&self, path: &str) -> Result<bool, SimpleFSError> {
-        if SimpleFS::is_folder_path(path) == false {
+        if !SimpleFS::is_folder_path(path) {
             console_log(&format!("[vfs] invalid path '{}'\n", path));
             return Err(SimpleFSError::InvalidPath);
         }
@@ -160,6 +153,7 @@ impl SimpleFS {
     }
 
     pub async fn create_folder_absolute(&mut self, path: &str) -> Result<FSFolder, SimpleFSError> {
+
         if !SimpleFS::is_folder_path(path) {
             console_log(&format!("[vfs] invalid folder name '{}'\n", path));
             return Err(SimpleFSError::InvalidPath);
@@ -168,6 +162,25 @@ impl SimpleFS {
         if !SimpleFS::is_absolute_path(path) {
             console_log(&format!("[vfs] ivalid path '{}' it must be absolute\n", path));
             return Err(SimpleFSError::InvalidPath);
+        }
+
+        if self.exists(path).await.unwrap_or(false) {
+            console_log(&format!("[vfs] folder '{}' already exists\n", path));
+            return Err(SimpleFSError::AlreadyExists);
+        }
+
+        let path_parts = path.rsplit('/').skip(1).filter(|s| !s.is_empty()).collect::<Vec<&str>>();
+        let parent_path = if path_parts.is_empty() {
+            "/".to_string()
+        } else {
+            format!("/{}", path_parts.join("/"))
+        };
+
+        console_log(&format!("[vfs] parent folder of '{}' is '{}'\n", path, parent_path));
+
+        if !parent_path.is_empty() && !self.exists(&parent_path).await.unwrap_or(false) {
+            console_log(&format!("[vfs] parent folder '{}' does not exist\n", parent_path));
+            return Err(SimpleFSError::ParentNotFound);
         }
 
         if let Some(db) = &self.database {

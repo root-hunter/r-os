@@ -8,20 +8,20 @@ pub trait FSEntryTrait {
     fn modified_at(&self) -> u64;
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum FSEntryKind {
     File(FSFile),
     Folder(FSFolder),
     Link(FSLink),
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FSEntry {
     pub abs_path: String,
     pub entry: FSEntryKind,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FSEntryMetadata {
     pub is_hidden: bool,
     pub path: String,
@@ -30,7 +30,7 @@ pub struct FSEntryMetadata {
     pub modified_at: u64,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FSFolder {
     pub metadata: FSEntryMetadata,
 }
@@ -57,7 +57,7 @@ impl FSEntryTrait for FSFolder {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FSFile {
     metadata: FSEntryMetadata,
 
@@ -86,7 +86,7 @@ impl FSEntryTrait for FSFile {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FSLink {
     metadata: FSEntryMetadata,
 }

@@ -1,6 +1,6 @@
 [package]
 name = "r_os"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2024"
 authors = ["Antonio Ricciardi"]
 license-file = "LICENSE-APACHE"

@@ -11,7 +11,7 @@ RUN wasm-pack build --target web
 
 FROM nginx:alpine
 
-COPY --from=builder /usr/src/app/pkg /usr/share/nginx/html/pkg
 COPY --from=builder /usr/src/app/static /usr/share/nginx/html
+COPY --from=builder /usr/src/app/pkg /usr/share/nginx/html/pkg
 
 EXPOSE 80

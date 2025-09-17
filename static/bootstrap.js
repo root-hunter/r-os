@@ -1,4 +1,4 @@
-import init from "/r-os/pkg/r_os.js";
+import init from "./pkg/r_os.js";
 
 async function run() {
   await init();

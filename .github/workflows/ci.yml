@@ -28,7 +28,7 @@ jobs:
         run: wasm-pack build --target web
 
       - name: Upload pkg artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: wasm-pkg
           path: pkg/

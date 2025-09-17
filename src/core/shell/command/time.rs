@@ -19,7 +19,7 @@ impl ShellCommand for TimeCommand {
         let time = k.get_time();
         let timestamp = k.get_timestamp();
         
-        k.print(&format!("System clock:\nTimestamp: {}\nUNIX Epoch (mills): {}", timestamp, time));
+        k.print(&format!("\nSystem clock:\nTimestamp: {}\nUNIX Epoch (mills): {}\n", timestamp, time));
 
         "".into()
     }

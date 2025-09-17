@@ -9,3 +9,6 @@ serve-dev: build-dev
 
 serve: build
 	python3 -m http.server 8080
+
+docker-build:
+	docker build -t r-os .

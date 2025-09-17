@@ -1,9 +1,11 @@
 build-dev:
+	rm -rf static/pkg
 	wasm-pack build --target web --dev
 	mv pkg static/
 
 build:
-	wasm-pack build --target web
+	rm -rf static/pkg
+	wasm-pack build --target web --release
 	mv pkg static/
 
 serve-dev: build-dev

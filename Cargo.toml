@@ -31,3 +31,12 @@ async-std = "1.13.2"
 
 [features]
 default = ["wee_alloc"]
+
+[package.metadata.wasm-pack.profile.dev]
+wasm-opt = false
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = [
+  '-O4',
+  "--flexible-inline-max-function-size"
+]

@@ -7,6 +7,17 @@ _An experimental Rust + WebAssembly Operating System in the Browser_
 
 ---
 
+## 🚀 Demo  
+
+Want to see the project in action?  
+👉 [Try it out here!](https://root-hunter.github.io/r-os/)  
+
+The demo is available online, no local installation required.  
+You can explore the interface, test the main features, and get a quick overview of how the project works.  
+
+🔹 For the best experience, use **Google Chrome** or **Firefox**.  
+🔹 Some features may be limited compared to the full local version.
+
 ## 📖 Introduction
 **rOS** (or `r-os`) is an experimental operating system that runs **entirely inside the browser**.  
 It is built in **Rust**, compiled to **WebAssembly**, and provides a minimal kernel, a shell-like command interpreter, and a persistent virtual file system backed by **IndexedDB**.

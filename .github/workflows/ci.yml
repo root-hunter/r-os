@@ -17,9 +17,17 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.cargo_version.outputs.version }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Extract version
+        id: cargo_version
+        run: |
+          VERSION=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Set up Rust
         uses: actions-rs/toolchain@v1
@@ -69,12 +77,6 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Extract version
-        id: cargo_version
-        run: |
-          VERSION=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
       - name: Download pkg artifact
         uses: actions/download-artifact@v4
         with:
@@ -84,9 +86,9 @@ jobs:
       - name: Release wasm artifact
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ steps.cargo_version.outputs.version }}
-          name: r_os_v${{ steps.cargo_version.outputs.version }}.zip
-          body: Release v${{ steps.cargo_version.outputs.version }}
+          tag_name: v${{ needs.build.outputs.version }}
+          name: r_os_v${{ needs.build.outputs.version }}.zip
+          body: Release v${{ needs.build.outputs.version }}
           files: pkg/**
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

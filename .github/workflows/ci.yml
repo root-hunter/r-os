@@ -86,11 +86,16 @@ jobs:
           name: wasm-pkg
           path: pkg
       
-      - name: Prepare release assets
+      - name: Prepare release archive
         run: |
           mkdir -p release/r_os
           cp -r pkg/* release/r_os/
-          cp static/bootstrap.js release/
+          if [ -f pkg/bootstrap.js ]; then
+            cp pkg/bootstrap.js release/
+          fi
+          cd release
+          zip -r ../r_os_v${{ needs.build.outputs.version }}.zip .
+
 
       - name: Release wasm artifact
         uses: softprops/action-gh-release@v1
@@ -98,6 +103,6 @@ jobs:
           tag_name: v${{ needs.build.outputs.version }}
           name: rOS v${{ needs.build.outputs.version }}
           body: Release rOS v${{ needs.build.outputs.version }}
-          files: release/**
+          files: r_os_v${{ needs.build.outputs.version }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

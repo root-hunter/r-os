@@ -1,0 +1,20 @@
+{
+  "name": "r_os",
+  "type": "module",
+  "collaborators": [
+    "Antonio Ricciardi"
+  ],
+  "description": "An operating system written in Rust for the browser",
+  "version": "0.1.1",
+  "license": "SEE LICENSE IN LICENSE-APACHE",
+  "files": [
+    "r_os_bg.wasm",
+    "r_os.js",
+    "r_os.d.ts"
+  ],
+  "main": "r_os.js",
+  "types": "r_os.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

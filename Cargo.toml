@@ -38,5 +38,6 @@ wasm-opt = false
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = [
   '-O4',
-  "--flexible-inline-max-function-size"
+  "--flexible-inline-max-function-size",
+  "4294967295",
 ]

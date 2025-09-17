@@ -96,8 +96,8 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ needs.build.outputs.version }}
-          name: r_os_v${{ needs.build.outputs.version }}
-          body: Release v${{ needs.build.outputs.version }}
+          name: rOS v${{ needs.build.outputs.version }}
+          body: Release rOS v${{ needs.build.outputs.version }}
           files: release/**
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

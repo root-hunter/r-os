@@ -1,21 +1,76 @@
-name: CI
+name: CI & Deploy
 
 on:
   push:
-    branches: [ main ]
+    branches: [release]
   pull_request:
-    branches: [ main ]
+    branches: [release]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
         with:
-          node-version: '18'
-      - name: Install dependencies
-        run: npm install
-      - name: Run tests
-        run: npm test
+          toolchain: stable
+          profile: minimal
+          override: true
+
+      - name: Install wasm-pack
+        run: cargo install wasm-pack
+
+      - name: Build wasm
+        run: wasm-pack build --target web
+
+      - name: Upload pkg artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: wasm-pkg
+          path: pkg/
+
+  deploy_demo:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Download pkg artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: wasm-pkg
+          path: pkg
+
+      - name: Copy static files
+        run: |
+          mkdir -p deploy
+          cp -r static/* deploy/
+          cp -r pkg deploy/pkg
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./deploy
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download pkg artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: wasm-pkg
+          path: pkg
+
+      - name: Release wasm artifact
+        uses: softprops/action-gh-release@v1
+        with:
+          files: pkg/**
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
